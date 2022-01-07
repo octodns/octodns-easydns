@@ -1,6 +1,4 @@
-TODO: Review this README and add or modify as necessary.
-
-## EasyDnsProvider provider for octoDNS
+## EasyDnsProvider API v3 provider for octoDNS
 
 An [octoDNS](https://github.com/octodns/octodns/) provider that targets [easyDNS](https://easydns.com/).
 
@@ -38,21 +36,28 @@ octodns_easydns==0.0.1
 providers:
   easydns:
     class: octodns_easydns.EasyDnsProvider
-    # TODO
+    # Your EasyDNS API token (required)
+    token: env/EASYDNS_TOKEN
+    # Your EasyDNS API Key (required)
+    api_key: env/EASYDNS_API_KEY
+    # Use SandBox or Live environment, optional, defaults to live
+    #sandbox: False
+    # Currency to use for creating domains, default CAD
+    #default_currency: CAD
+    # Domain Portfolio under which to create domains
+    portfolio: env/EASYDNS_PORTFOLIO
 ```
 
 ### Support Information
 
 #### Records
 
-TODO: All octoDNS record types are supported.
+EasyDnsProvider supports A, AAAA, CAA, CNAME, MX, NAPTR, NS, SRV, and TXT.
 
 #### Dynamic
 
-TODO: EasyDnsProvider does not support dynamic records.
+EasyDnsProvider does not support dynamic records.
 
 ### Developement
 
 See the [/script/](/script/) directory for some tools to help with the development process. They generally follow the [Script to rule them all](https://github.com/github/scripts-to-rule-them-all) pattern. Most useful is `./script/bootstrap` which will create a venv and install both the runtime and development related requirements. It will also hook up a pre-commit hook that covers most of what's run by CI.
-
-TODO: any provider specific setup, a docker compose to run things locally etc?
