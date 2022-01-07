@@ -1,4 +1,4 @@
-## EasyDnsProvider API v3 provider for octoDNS
+## easyDns API v3 provider for octoDNS
 
 An [octoDNS](https://github.com/octodns/octodns/) provider that targets [easyDNS](https://easydns.com/).
 
