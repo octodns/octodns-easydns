@@ -20,19 +20,16 @@ class EasyDnsClientException(ProviderException):
 
 
 class EasyDnsClientBadRequest(EasyDnsClientException):
-
     def __init__(self):
         super(EasyDnsClientBadRequest, self).__init__('Bad request')
 
 
 class EasyDnsClientNotFound(EasyDnsClientException):
-
     def __init__(self):
         super(EasyDnsClientNotFound, self).__init__('Not Found')
 
 
 class EasyDnsClientUnauthorized(EasyDnsClientException):
-
     def __init__(self):
         super(EasyDnsClientUnauthorized, self).__init__('Unauthorized')
 
@@ -47,8 +44,9 @@ class EasyDnsClient(object):
     # Domain Portfolio
     domain_portfolio = 'myport'
 
-    def __init__(self, token, api_key, currency, portfolio, sandbox,
-                 domain_create_sleep):
+    def __init__(
+        self, token, api_key, currency, portfolio, sandbox, domain_create_sleep
+    ):
         self.log = logging.getLogger(f'EasyDnsProvider[{id}]')
         self.default_currency = currency
         self.domain_portfolio = portfolio
@@ -87,11 +85,13 @@ class EasyDnsClient(object):
         # only, or with domain registration. This function creates a DNS only
         # record expectig the domain to be registered already
         path = f'/domains/add/{name}'
-        domain_data = {'service': 'dns',
-                       'term': 1,
-                       'dns_only': 1,
-                       'portfolio': self.domain_portfolio,
-                       'currency': self.default_currency}
+        domain_data = {
+            'service': 'dns',
+            'term': 1,
+            'dns_only': 1,
+            'portfolio': self.domain_portfolio,
+            'currency': self.default_currency,
+        }
         self._request('PUT', path, data=domain_data).json()
 
         # EasyDNS creates default records for MX, A and CNAME for new domains,
@@ -101,8 +101,11 @@ class EasyDnsClient(object):
         sleep(self.domain_create_sleep)
         records = self.records(name, True)
         for record in records:
-            if record['host'] in ('', 'www') \
-               and record['type'] in ('A', 'MX', 'CNAME'):
+            if record['host'] in ('', 'www') and record['type'] in (
+                'A',
+                'MX',
+                'CNAME',
+            ):
                 self.record_delete(name, record['id'])
 
     def records(self, zone_name, raw=False):
@@ -142,23 +145,35 @@ class EasyDnsClient(object):
 class EasyDnsProvider(BaseProvider):
     SUPPORTS_GEO = False
     SUPPORTS_DYNAMIC = False
-    SUPPORTS = set(('A', 'AAAA', 'CAA', 'CNAME', 'MX', 'NS', 'TXT',
-                    'SRV', 'NAPTR'))
+    SUPPORTS = set(
+        ('A', 'AAAA', 'CAA', 'CNAME', 'MX', 'NS', 'TXT', 'SRV', 'NAPTR')
+    )
 
-    def __init__(self, id, token, api_key, currency='CAD', portfolio='myport',
-                 sandbox=False, domain_create_sleep=1, *args, **kwargs):
+    def __init__(
+        self,
+        id,
+        token,
+        api_key,
+        currency='CAD',
+        portfolio='myport',
+        sandbox=False,
+        domain_create_sleep=1,
+        *args,
+        **kwargs,
+    ):
         self.log = logging.getLogger(f'EasyDnsProvider[{id}]')
         self.log.debug('__init__: id=%s, token=***', id)
         super(EasyDnsProvider, self).__init__(id, *args, **kwargs)
-        self._client = EasyDnsClient(token, api_key, currency, portfolio,
-                                     sandbox, domain_create_sleep)
+        self._client = EasyDnsClient(
+            token, api_key, currency, portfolio, sandbox, domain_create_sleep
+        )
         self._zone_records = {}
 
     def _data_for_multiple(self, _type, records):
         return {
             'ttl': records[0]['ttl'],
             'type': _type,
-            'values': [r['rdata'] for r in records]
+            'values': [r['rdata'] for r in records],
         }
 
     _data_for_A = _data_for_multiple
@@ -171,70 +186,52 @@ class EasyDnsProvider(BaseProvider):
                 flags, tag, value = record['rdata'].split(' ', 2)
             except ValueError:
                 continue
-            values.append({
-                'flags': flags,
-                'tag': tag,
-                'value': value,
-            })
-        return {
-            'ttl': records[0]['ttl'],
-            'type': _type,
-            'values': values
-        }
+            values.append({'flags': flags, 'tag': tag, 'value': value})
+        return {'ttl': records[0]['ttl'], 'type': _type, 'values': values}
 
     def _data_for_NAPTR(self, _type, records):
         values = []
         for record in records:
             try:
-                order, preference, flags, service, regexp, replacement = \
-                    record['rdata'].split(' ', 5)
+                order, preference, flags, service, regexp, replacement = record[
+                    'rdata'
+                ].split(' ', 5)
             except ValueError:
                 continue
-            values.append({
-                'flags': flags[1:-1],
-                'order': order,
-                'preference': preference,
-                'regexp': regexp[1:-1],
-                'replacement': replacement,
-                'service': service[1:-1],
-            })
-        return {
-            'type': _type,
-            'ttl': records[0]['ttl'],
-            'values': values
-        }
+            values.append(
+                {
+                    'flags': flags[1:-1],
+                    'order': order,
+                    'preference': preference,
+                    'regexp': regexp[1:-1],
+                    'replacement': replacement,
+                    'service': service[1:-1],
+                }
+            )
+        return {'type': _type, 'ttl': records[0]['ttl'], 'values': values}
 
     def _data_for_CNAME(self, _type, records):
         record = records[0]
         return {
             'ttl': record['ttl'],
             'type': _type,
-            'value': str(record['rdata'])
+            'value': str(record['rdata']),
         }
 
     def _data_for_MX(self, _type, records):
         values = []
         for record in records:
-            values.append({
-                'preference': record['prio'],
-                'exchange': str(record['rdata'])
-            })
-        return {
-            'ttl': records[0]['ttl'],
-            'type': _type,
-            'values': values
-        }
+            values.append(
+                {'preference': record['prio'], 'exchange': str(record['rdata'])}
+            )
+        return {'ttl': records[0]['ttl'], 'type': _type, 'values': values}
 
     def _data_for_NS(self, _type, records):
         values = []
         for record in records:
             data = str(record['rdata'])
             values.append(data)
-        return {
-            'ttl': records[0]['ttl'],
-            'type': _type,
-            'values': values,
-        }
+        return {'ttl': records[0]['ttl'], 'type': _type, 'values': values}
 
     def _data_for_SRV(self, _type, records):
         values = []
@@ -254,47 +251,48 @@ class EasyDnsProvider(BaseProvider):
                     weight = rdata[1]
                 if len(rdata) >= 3:
                     port = rdata[2]
-            values.append({
-                'port': int(port),
-                'priority': int(priority),
-                'target': target,
-                'weight': int(weight)
-            })
-        return {
-            'type': _type,
-            'ttl': records[0]['ttl'],
-            'values': values
-        }
+            values.append(
+                {
+                    'port': int(port),
+                    'priority': int(priority),
+                    'target': target,
+                    'weight': int(weight),
+                }
+            )
+        return {'type': _type, 'ttl': records[0]['ttl'], 'values': values}
 
     def _data_for_TXT(self, _type, records):
-        values = ['"' + value['rdata'].replace(';', '\\;') +
-                  '"' for value in records]
-        return {
-            'ttl': records[0]['ttl'],
-            'type': _type,
-            'values': values
-        }
+        values = [
+            '"' + value['rdata'].replace(';', '\\;') + '"' for value in records
+        ]
+        return {'ttl': records[0]['ttl'], 'type': _type, 'values': values}
 
     def zone_records(self, zone):
         if zone.name not in self._zone_records:
             try:
-                self._zone_records[zone.name] = \
-                    self._client.records(zone.name[:-1])
+                self._zone_records[zone.name] = self._client.records(
+                    zone.name[:-1]
+                )
             except EasyDnsClientNotFound:
                 return []
 
         return self._zone_records[zone.name]
 
     def populate(self, zone, target=False, lenient=False):
-        self.log.debug('populate: name=%s, target=%s, lenient=%s', zone.name,
-                       target, lenient)
+        self.log.debug(
+            'populate: name=%s, target=%s, lenient=%s',
+            zone.name,
+            target,
+            lenient,
+        )
 
         values = defaultdict(lambda: defaultdict(list))
         for record in self.zone_records(zone):
             _type = record['type']
             if _type not in self.SUPPORTS:
-                self.log.warning('populate: skipping unsupported %s record',
-                                 _type)
+                self.log.warning(
+                    'populate: skipping unsupported %s record', _type
+                )
                 continue
             values[record['host']][record['type']].append(record)
 
@@ -302,13 +300,21 @@ class EasyDnsProvider(BaseProvider):
         for name, types in values.items():
             for _type, records in types.items():
                 data_for = getattr(self, f'_data_for_{_type}')
-                record = Record.new(zone, name, data_for(_type, records),
-                                    source=self, lenient=lenient)
+                record = Record.new(
+                    zone,
+                    name,
+                    data_for(_type, records),
+                    source=self,
+                    lenient=lenient,
+                )
                 zone.add_record(record, lenient=lenient)
 
         exists = zone.name in self._zone_records
-        self.log.info('populate:   found %s records, exists=%s',
-                      len(zone.records) - before, exists)
+        self.log.info(
+            'populate:   found %s records, exists=%s',
+            len(zone.records) - before,
+            exists,
+        )
         return exists
 
     def _params_for_multiple(self, record):
@@ -317,7 +323,7 @@ class EasyDnsProvider(BaseProvider):
                 'rdata': value,
                 'name': record.name,
                 'ttl': record.ttl,
-                'type': record._type
+                'type': record._type,
             }
 
     _params_for_A = _params_for_multiple
@@ -330,18 +336,20 @@ class EasyDnsProvider(BaseProvider):
                 'rdata': f"{value.flags} {value.tag} {value.value}",
                 'name': record.name,
                 'ttl': record.ttl,
-                'type': record._type
+                'type': record._type,
             }
 
     def _params_for_NAPTR(self, record):
         for value in record.values:
-            content = f'{value.order} {value.preference} "{value.flags}" ' \
+            content = (
+                f'{value.order} {value.preference} "{value.flags}" '
                 f'"{value.service}" "{value.regexp}" {value.replacement}'
+            )
             yield {
                 'rdata': content,
                 'name': record.name,
                 'ttl': record.ttl,
-                'type': record._type
+                'type': record._type,
             }
 
     def _params_for_single(self, record):
@@ -349,7 +357,7 @@ class EasyDnsProvider(BaseProvider):
             'rdata': record.value,
             'name': record.name,
             'ttl': record.ttl,
-            'type': record._type
+            'type': record._type,
         }
 
     _params_for_CNAME = _params_for_single
@@ -361,7 +369,7 @@ class EasyDnsProvider(BaseProvider):
                 'name': record.name,
                 'prio': value.preference,
                 'ttl': record.ttl,
-                'type': record._type
+                'type': record._type,
             }
 
     def _params_for_SRV(self, record):
@@ -380,7 +388,7 @@ class EasyDnsProvider(BaseProvider):
                 'rdata': '"' + value.replace('\\;', ';') + '"',
                 'name': record.name,
                 'ttl': record.ttl,
-                'type': record._type
+                'type': record._type,
             }
 
     def _apply_Create(self, change):
@@ -397,17 +405,24 @@ class EasyDnsProvider(BaseProvider):
         existing = change.existing
         zone = existing.zone
         for record in self.zone_records(zone):
-            self.log.debug('apply_Delete: zone=%s, type=%s, host=%s', zone,
-                           record['type'], record['host'])
-            if existing.name == record['host'] and \
-               existing._type == record['type']:
+            self.log.debug(
+                'apply_Delete: zone=%s, type=%s, host=%s',
+                zone,
+                record['type'],
+                record['host'],
+            )
+            if (
+                existing.name == record['host']
+                and existing._type == record['type']
+            ):
                 self._client.record_delete(zone.name[:-1], record['id'])
 
     def _apply(self, plan):
         desired = plan.desired
         changes = plan.changes
-        self.log.debug('_apply: zone=%s, len(changes)=%d', desired.name,
-                       len(changes))
+        self.log.debug(
+            '_apply: zone=%s, len(changes)=%d', desired.name, len(changes)
+        )
 
         domain_name = desired.name[:-1]
         try:
