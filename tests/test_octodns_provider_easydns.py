@@ -27,9 +27,12 @@ class TestEasyDnsProvider(TestCase):
 
         # Bad auth
         with requests_mock() as mock:
-            mock.get(ANY, status_code=401,
-                     text='{"id":"unauthorized",'
-                     '"message":"Unable to authenticate you."}')
+            mock.get(
+                ANY,
+                status_code=401,
+                text='{"id":"unauthorized",'
+                '"message":"Unable to authenticate you."}',
+            )
 
             with self.assertRaises(Exception) as ctx:
                 zone = Zone('unit.tests.', [])
@@ -38,9 +41,11 @@ class TestEasyDnsProvider(TestCase):
 
         # Bad request
         with requests_mock() as mock:
-            mock.get(ANY, status_code=400,
-                     text='{"id":"invalid",'
-                     '"message":"Bad request"}')
+            mock.get(
+                ANY,
+                status_code=400,
+                text='{"id":"invalid",' '"message":"Bad request"}',
+            )
 
             with self.assertRaises(Exception) as ctx:
                 zone = Zone('unit.tests.', [])
@@ -58,9 +63,12 @@ class TestEasyDnsProvider(TestCase):
 
         # Non-existent zone doesn't populate anything
         with requests_mock() as mock:
-            mock.get(ANY, status_code=404,
-                     text='{"id":"not_found","message":"The resource you '
-                     'were accessing could not be found."}')
+            mock.get(
+                ANY,
+                status_code=404,
+                text='{"id":"not_found","message":"The resource you '
+                'were accessing could not be found."}',
+            )
 
             zone = Zone('unit.tests.', [])
             provider.populate(zone)
@@ -92,9 +100,12 @@ class TestEasyDnsProvider(TestCase):
 
         with requests_mock() as mock:
             base = 'https://rest.easydns.net/'
-            mock.get(f'{base}domain/unit.tests', status_code=400,
-                     text='{"id":"not_found","message":"The resource you '
-                     'were accessing could not be found."}')
+            mock.get(
+                f'{base}domain/unit.tests',
+                status_code=400,
+                text='{"id":"not_found","message":"The resource you '
+                'were accessing could not be found."}',
+            )
 
             with self.assertRaises(Exception) as ctx:
                 provider._client.domain('unit.tests')
@@ -102,31 +113,44 @@ class TestEasyDnsProvider(TestCase):
             self.assertEqual('Not Found', str(ctx.exception))
 
     def test_apply_not_found(self):
-        provider = EasyDnsProvider('test', 'token', 'apikey',
-                                   domain_create_sleep=0)
+        provider = EasyDnsProvider(
+            'test', 'token', 'apikey', domain_create_sleep=0
+        )
 
         wanted = Zone('unit.tests.', [])
-        wanted.add_record(Record.new(wanted, 'test1', {
-            "name": "test1",
-            "ttl": 300,
-            "type": "A",
-            "value": "1.2.3.4",
-        }))
+        wanted.add_record(
+            Record.new(
+                wanted,
+                'test1',
+                {"name": "test1", "ttl": 300, "type": "A", "value": "1.2.3.4"},
+            )
+        )
 
         with requests_mock() as mock:
             base = 'https://rest.easydns.net/'
-            mock.get(f'{base}domain/unit.tests', status_code=404,
-                     text='{"id":"not_found","message":"The resource you '
-                     'were accessing could not be found."}')
-            mock.put(f'{base}domains/add/unit.tests', status_code=200,
-                     text='{"id":"OK","message":"Zone created."}')
-            mock.get(f'{base}zones/records/parsed/unit.tests',
-                     status_code=404,
-                     text='{"id":"not_found","message":"The resource you '
-                     'were accessing could not be found."}')
-            mock.get(f'{base}zones/records/all/unit.tests', status_code=404,
-                     text='{"id":"not_found","message":"The resource you '
-                     'were accessing could not be found."}')
+            mock.get(
+                f'{base}domain/unit.tests',
+                status_code=404,
+                text='{"id":"not_found","message":"The resource you '
+                'were accessing could not be found."}',
+            )
+            mock.put(
+                f'{base}domains/add/unit.tests',
+                status_code=200,
+                text='{"id":"OK","message":"Zone created."}',
+            )
+            mock.get(
+                f'{base}zones/records/parsed/unit.tests',
+                status_code=404,
+                text='{"id":"not_found","message":"The resource you '
+                'were accessing could not be found."}',
+            )
+            mock.get(
+                f'{base}zones/records/all/unit.tests',
+                status_code=404,
+                text='{"id":"not_found","message":"The resource you '
+                'were accessing could not be found."}',
+            )
 
             plan = provider.plan(wanted)
             self.assertFalse(plan.exists)
@@ -137,54 +161,64 @@ class TestEasyDnsProvider(TestCase):
             self.assertEqual('Not Found', str(ctx.exception))
 
     def test_domain_create(self):
-        provider = EasyDnsProvider('test', 'token', 'apikey',
-                                   domain_create_sleep=0)
+        provider = EasyDnsProvider(
+            'test', 'token', 'apikey', domain_create_sleep=0
+        )
         domain_after_creation = {
             "tm": 1000000000,
-            "data": [{
-                "id": "12341001",
-                "domain": "unit.tests",
-                "host": "@",
-                "ttl": "0",
-                "prio": "0",
-                "type": "SOA",
-                "rdata": "dns1.easydns.com. zone.easydns.com. "
-                "2020010101 3600 600 604800 0",
-                "geozone_id": "0",
-                "last_mod": "2020-01-01 01:01:01"
-            }, {
-                "id": "12341002",
-                "domain": "unit.tests",
-                "host": "@",
-                "ttl": "0",
-                "prio": "0",
-                "type": "NS",
-                "rdata": "LOCAL.",
-                "geozone_id": "0",
-                "last_mod": "2020-01-01 01:01:01"
-            }, {
-                "id": "12341003",
-                "domain": "unit.tests",
-                "host": "@",
-                "ttl": "0",
-                "prio": "0",
-                "type": "MX",
-                "rdata": "LOCAL.",
-                "geozone_id": "0",
-                "last_mod": "2020-01-01 01:01:01"
-            }],
+            "data": [
+                {
+                    "id": "12341001",
+                    "domain": "unit.tests",
+                    "host": "@",
+                    "ttl": "0",
+                    "prio": "0",
+                    "type": "SOA",
+                    "rdata": "dns1.easydns.com. zone.easydns.com. "
+                    "2020010101 3600 600 604800 0",
+                    "geozone_id": "0",
+                    "last_mod": "2020-01-01 01:01:01",
+                },
+                {
+                    "id": "12341002",
+                    "domain": "unit.tests",
+                    "host": "@",
+                    "ttl": "0",
+                    "prio": "0",
+                    "type": "NS",
+                    "rdata": "LOCAL.",
+                    "geozone_id": "0",
+                    "last_mod": "2020-01-01 01:01:01",
+                },
+                {
+                    "id": "12341003",
+                    "domain": "unit.tests",
+                    "host": "@",
+                    "ttl": "0",
+                    "prio": "0",
+                    "type": "MX",
+                    "rdata": "LOCAL.",
+                    "geozone_id": "0",
+                    "last_mod": "2020-01-01 01:01:01",
+                },
+            ],
             "count": 3,
             "total": 3,
             "start": 0,
             "max": 1000,
-            "status": 200
+            "status": 200,
         }
         with requests_mock() as mock:
             base = 'https://rest.easydns.net/'
-            mock.put(f'{base}domains/add/unit.tests',
-                     status_code=201, text='{"id":"OK"}')
-            mock.get(f'{base}zones/records/all/unit.tests',
-                     text=json.dumps(domain_after_creation))
+            mock.put(
+                f'{base}domains/add/unit.tests',
+                status_code=201,
+                text='{"id":"OK"}',
+            )
+            mock.get(
+                f'{base}zones/records/all/unit.tests',
+                text=json.dumps(domain_after_creation),
+            )
             mock.delete(ANY, text='{"id":"OK"}')
             provider._client.domain_create('unit.tests')
 
@@ -192,24 +226,28 @@ class TestEasyDnsProvider(TestCase):
         provider = EasyDnsProvider('test', 'token', 'apikey')
 
         # Invalid rdata records
-        caa_record_invalid = [{
-            "domain": "unit.tests",
-            "host": "@",
-            "ttl": "3600",
-            "prio": "0",
-            "type": "CAA",
-            "rdata": "0",
-        }]
+        caa_record_invalid = [
+            {
+                "domain": "unit.tests",
+                "host": "@",
+                "ttl": "3600",
+                "prio": "0",
+                "type": "CAA",
+                "rdata": "0",
+            }
+        ]
 
         # Valid rdata records
-        caa_record_valid = [{
-            "domain": "unit.tests",
-            "host": "@",
-            "ttl": "3600",
-            "prio": "0",
-            "type": "CAA",
-            "rdata": "0 issue ca.unit.tests",
-        }]
+        caa_record_valid = [
+            {
+                "domain": "unit.tests",
+                "host": "@",
+                "ttl": "3600",
+                "prio": "0",
+                "type": "CAA",
+                "rdata": "0 issue ca.unit.tests",
+            }
+        ]
 
         provider._data_for_CAA('CAA', caa_record_invalid)
         provider._data_for_CAA('CAA', caa_record_valid)
@@ -218,24 +256,28 @@ class TestEasyDnsProvider(TestCase):
         provider = EasyDnsProvider('test', 'token', 'apikey')
 
         # Invalid rdata records
-        naptr_record_invalid = [{
-            "domain": "unit.tests",
-            "host": "naptr",
-            "ttl": "600",
-            "prio": "10",
-            "type": "NAPTR",
-            "rdata": "100",
-        }]
+        naptr_record_invalid = [
+            {
+                "domain": "unit.tests",
+                "host": "naptr",
+                "ttl": "600",
+                "prio": "10",
+                "type": "NAPTR",
+                "rdata": "100",
+            }
+        ]
 
         # Valid rdata records
-        naptr_record_valid = [{
-            "domain": "unit.tests",
-            "host": "naptr",
-            "ttl": "600",
-            "prio": "10",
-            "type": "NAPTR",
-            "rdata": "10 10 'U' 'SIP+D2U' '!^.*$!sip:info@bar.example.com!' .",
-        }]
+        naptr_record_valid = [
+            {
+                "domain": "unit.tests",
+                "host": "naptr",
+                "ttl": "600",
+                "prio": "10",
+                "type": "NAPTR",
+                "rdata": "10 10 'U' 'SIP+D2U' '!^.*$!sip:info@bar.example.com!' .",
+            }
+        ]
 
         provider._data_for_NAPTR('NAPTR', naptr_record_invalid)
         provider._data_for_NAPTR('NAPTR', naptr_record_valid)
@@ -244,43 +286,53 @@ class TestEasyDnsProvider(TestCase):
         provider = EasyDnsProvider('test', 'token', 'apikey')
 
         # Invalid rdata records
-        srv_invalid = [{
-            "domain": "unit.tests",
-            "host": "_srv._tcp",
-            "ttl": "600",
-            "type": "SRV",
-            "rdata": "",
-        }]
-        srv_invalid2 = [{
-            "domain": "unit.tests",
-            "host": "_srv._tcp",
-            "ttl": "600",
-            "type": "SRV",
-            "rdata": "11",
-        }]
-        srv_invalid3 = [{
-            "domain": "unit.tests",
-            "host": "_srv._tcp",
-            "ttl": "600",
-            "type": "SRV",
-            "rdata": "12 30",
-        }]
-        srv_invalid4 = [{
-            "domain": "unit.tests",
-            "host": "_srv._tcp",
-            "ttl": "600",
-            "type": "SRV",
-            "rdata": "13 40 1234",
-        }]
+        srv_invalid = [
+            {
+                "domain": "unit.tests",
+                "host": "_srv._tcp",
+                "ttl": "600",
+                "type": "SRV",
+                "rdata": "",
+            }
+        ]
+        srv_invalid2 = [
+            {
+                "domain": "unit.tests",
+                "host": "_srv._tcp",
+                "ttl": "600",
+                "type": "SRV",
+                "rdata": "11",
+            }
+        ]
+        srv_invalid3 = [
+            {
+                "domain": "unit.tests",
+                "host": "_srv._tcp",
+                "ttl": "600",
+                "type": "SRV",
+                "rdata": "12 30",
+            }
+        ]
+        srv_invalid4 = [
+            {
+                "domain": "unit.tests",
+                "host": "_srv._tcp",
+                "ttl": "600",
+                "type": "SRV",
+                "rdata": "13 40 1234",
+            }
+        ]
 
         # Valid rdata
-        srv_valid = [{
-            "domain": "unit.tests",
-            "host": "_srv._tcp",
-            "ttl": "600",
-            "type": "SRV",
-            "rdata": "100 20 5678 foo-2.unit.tests.",
-        }]
+        srv_valid = [
+            {
+                "domain": "unit.tests",
+                "host": "_srv._tcp",
+                "ttl": "600",
+                "type": "SRV",
+                "rdata": "100 20 5678 foo-2.unit.tests.",
+            }
+        ]
 
         srv_invalid_content = provider._data_for_SRV('SRV', srv_invalid)
         srv_invalid_content2 = provider._data_for_SRV('SRV', srv_invalid2)
@@ -306,8 +358,9 @@ class TestEasyDnsProvider(TestCase):
         self.assertEqual(srv_invalid_content3['values'][0]['port'], 0)
         self.assertEqual(srv_invalid_content4['values'][0]['port'], 1234)
 
-        self.assertEqual(srv_valid_content['values'][0]['target'],
-                         'foo-2.unit.tests.')
+        self.assertEqual(
+            srv_valid_content['values'][0]['target'], 'foo-2.unit.tests.'
+        )
         self.assertEqual(srv_invalid_content['values'][0]['target'], '')
         self.assertEqual(srv_invalid_content2['values'][0]['target'], '')
         self.assertEqual(srv_invalid_content3['values'][0]['target'], '')
@@ -322,49 +375,53 @@ class TestEasyDnsProvider(TestCase):
 
         domain_after_creation = {
             "tm": 1000000000,
-            "data": [{
-                "id": "12341001",
-                "domain": "unit.tests",
-                "host": "@",
-                "ttl": "0",
-                "prio": "0",
-                "type": "SOA",
-                "rdata": "dns1.easydns.com. zone.easydns.com. 2020010101"
-                " 3600 600 604800 0",
-                "geozone_id": "0",
-                "last_mod": "2020-01-01 01:01:01"
-            }, {
-                "id": "12341002",
-                "domain": "unit.tests",
-                "host": "@",
-                "ttl": "0",
-                "prio": "0",
-                "type": "NS",
-                "rdata": "LOCAL.",
-                "geozone_id": "0",
-                "last_mod": "2020-01-01 01:01:01"
-            }, {
-                "id": "12341003",
-                "domain": "unit.tests",
-                "host": "@",
-                "ttl": "0",
-                "prio": "0",
-                "type": "MX",
-                "rdata": "LOCAL.",
-                "geozone_id": "0",
-                "last_mod": "2020-01-01 01:01:01"
-            }],
+            "data": [
+                {
+                    "id": "12341001",
+                    "domain": "unit.tests",
+                    "host": "@",
+                    "ttl": "0",
+                    "prio": "0",
+                    "type": "SOA",
+                    "rdata": "dns1.easydns.com. zone.easydns.com. 2020010101"
+                    " 3600 600 604800 0",
+                    "geozone_id": "0",
+                    "last_mod": "2020-01-01 01:01:01",
+                },
+                {
+                    "id": "12341002",
+                    "domain": "unit.tests",
+                    "host": "@",
+                    "ttl": "0",
+                    "prio": "0",
+                    "type": "NS",
+                    "rdata": "LOCAL.",
+                    "geozone_id": "0",
+                    "last_mod": "2020-01-01 01:01:01",
+                },
+                {
+                    "id": "12341003",
+                    "domain": "unit.tests",
+                    "host": "@",
+                    "ttl": "0",
+                    "prio": "0",
+                    "type": "MX",
+                    "rdata": "LOCAL.",
+                    "geozone_id": "0",
+                    "last_mod": "2020-01-01 01:01:01",
+                },
+            ],
             "count": 3,
             "total": 3,
             "start": 0,
             "max": 1000,
-            "status": 200
+            "status": 200,
         }
 
         # non-existent domain, create everything
         resp.json.side_effect = [
             EasyDnsClientNotFound,  # no zone in populate
-            domain_after_creation
+            domain_after_creation,
         ]
         plan = provider.plan(self.expected)
 
@@ -379,65 +436,77 @@ class TestEasyDnsProvider(TestCase):
         provider._client._request.reset_mock()
 
         # delete 1 and update 1
-        provider._client.records = Mock(return_value=[
-            {
-                "id": "12342001",
-                "domain": "unit.tests",
-                "host": "www",
-                "ttl": "300",
-                "prio": "0",
-                "type": "A",
-                "rdata": "2.2.3.9",
-                "geozone_id": "0",
-                "last_mod": "2020-01-01 01:01:01"
-            }, {
-                "id": "12342002",
-                "domain": "unit.tests",
-                "host": "www",
-                "ttl": "300",
-                "prio": "0",
-                "type": "A",
-                "rdata": "2.2.3.8",
-                "geozone_id": "0",
-                "last_mod": "2020-01-01 01:01:01"
-            }, {
-                "id": "12342003",
-                "domain": "unit.tests",
-                "host": "test1",
-                "ttl": "3600",
-                "prio": "0",
-                "type": "A",
-                "rdata": "1.2.3.4",
-                "geozone_id": "0",
-                "last_mod": "2020-01-01 01:01:01"
-            }
-        ])
+        provider._client.records = Mock(
+            return_value=[
+                {
+                    "id": "12342001",
+                    "domain": "unit.tests",
+                    "host": "www",
+                    "ttl": "300",
+                    "prio": "0",
+                    "type": "A",
+                    "rdata": "2.2.3.9",
+                    "geozone_id": "0",
+                    "last_mod": "2020-01-01 01:01:01",
+                },
+                {
+                    "id": "12342002",
+                    "domain": "unit.tests",
+                    "host": "www",
+                    "ttl": "300",
+                    "prio": "0",
+                    "type": "A",
+                    "rdata": "2.2.3.8",
+                    "geozone_id": "0",
+                    "last_mod": "2020-01-01 01:01:01",
+                },
+                {
+                    "id": "12342003",
+                    "domain": "unit.tests",
+                    "host": "test1",
+                    "ttl": "3600",
+                    "prio": "0",
+                    "type": "A",
+                    "rdata": "1.2.3.4",
+                    "geozone_id": "0",
+                    "last_mod": "2020-01-01 01:01:01",
+                },
+            ]
+        )
 
         # Domain exists, we don't care about return
         resp.json.side_effect = ['{}']
 
         wanted = Zone('unit.tests.', [])
-        wanted.add_record(Record.new(wanted, 'test1', {
-            "name": "test1",
-            "ttl": 300,
-            "type": "A",
-            "value": "1.2.3.4",
-        }))
+        wanted.add_record(
+            Record.new(
+                wanted,
+                'test1',
+                {"name": "test1", "ttl": 300, "type": "A", "value": "1.2.3.4"},
+            )
+        )
 
         plan = provider.plan(wanted)
         self.assertTrue(plan.exists)
         self.assertEqual(2, len(plan.changes))
         self.assertEqual(2, provider.apply(plan))
         # recreate for update, and delete for the 2 parts of the other
-        provider._client._request.assert_has_calls([
-            call('PUT', '/zones/records/add/unit.tests/A', data={
-                'rdata': '1.2.3.4',
-                'name': 'test1',
-                'ttl': 300,
-                'type': 'A',
-                'host': 'test1',
-            }),
-            call('DELETE', '/zones/records/unit.tests/12342001'),
-            call('DELETE', '/zones/records/unit.tests/12342002'),
-            call('DELETE', '/zones/records/unit.tests/12342003')
-        ], any_order=True)
+        provider._client._request.assert_has_calls(
+            [
+                call(
+                    'PUT',
+                    '/zones/records/add/unit.tests/A',
+                    data={
+                        'rdata': '1.2.3.4',
+                        'name': 'test1',
+                        'ttl': 300,
+                        'type': 'A',
+                        'host': 'test1',
+                    },
+                ),
+                call('DELETE', '/zones/records/unit.tests/12342001'),
+                call('DELETE', '/zones/records/unit.tests/12342002'),
+                call('DELETE', '/zones/records/unit.tests/12342003'),
+            ],
+            any_order=True,
+        )
