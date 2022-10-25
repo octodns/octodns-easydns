@@ -21,17 +21,17 @@ class EasyDnsClientException(ProviderException):
 
 class EasyDnsClientBadRequest(EasyDnsClientException):
     def __init__(self):
-        super(EasyDnsClientBadRequest, self).__init__('Bad request')
+        super().__init__('Bad request')
 
 
 class EasyDnsClientNotFound(EasyDnsClientException):
     def __init__(self):
-        super(EasyDnsClientNotFound, self).__init__('Not Found')
+        super().__init__('Not Found')
 
 
 class EasyDnsClientUnauthorized(EasyDnsClientException):
     def __init__(self):
-        super(EasyDnsClientUnauthorized, self).__init__('Unauthorized')
+        super().__init__('Unauthorized')
 
 
 class EasyDnsClient(object):
@@ -163,7 +163,7 @@ class EasyDnsProvider(BaseProvider):
     ):
         self.log = logging.getLogger(f'EasyDnsProvider[{id}]')
         self.log.debug('__init__: id=%s, token=***', id)
-        super(EasyDnsProvider, self).__init__(id, *args, **kwargs)
+        super().__init__(id, *args, **kwargs)
         self._client = EasyDnsClient(
             token, api_key, currency, portfolio, sandbox, domain_create_sleep
         )
