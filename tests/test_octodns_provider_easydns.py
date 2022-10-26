@@ -44,7 +44,7 @@ class TestEasyDnsProvider(TestCase):
             mock.get(
                 ANY,
                 status_code=400,
-                text='{"id":"invalid",' '"message":"Bad request"}',
+                text='{"id":"invalid","message":"Bad request"}',
             )
 
             with self.assertRaises(Exception) as ctx:
