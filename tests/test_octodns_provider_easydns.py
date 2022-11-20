@@ -367,7 +367,9 @@ class TestEasyDnsProvider(TestCase):
         self.assertEqual(srv_invalid_content4['values'][0]['target'], '')
 
     def test_apply(self):
-        provider = EasyDnsProvider('test', 'token', 'apikey')
+        provider = EasyDnsProvider(
+            'test', 'token', 'apikey', strict_supports=False
+        )
 
         resp = Mock()
         resp.json = Mock()
