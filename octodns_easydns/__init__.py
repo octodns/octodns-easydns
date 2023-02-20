@@ -63,7 +63,7 @@ class EasyDnsClient(object):
             {
                 'Authorization': f'Basic {auth_key}',
                 'accept': 'application/json',
-                'User-Agent': f'octodns/{octodns_version} octodns-cloudflare/{__VERSION__}',
+                'User-Agent': f'octodns/{octodns_version} octodns-easydns/{__VERSION__}',
             }
         )
         self._sess = sess
