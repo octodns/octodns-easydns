@@ -9,6 +9,7 @@ from time import sleep
 
 from requests import Session
 
+from octodns import __VERSION__ as octodns_version
 from octodns.provider import ProviderException
 from octodns.provider.base import BaseProvider
 from octodns.record import Record
@@ -58,8 +59,13 @@ class EasyDnsClient(object):
         auth_key = auth_key.decode('utf-8')
         self.base_path = self.SANDBOX if sandbox else self.LIVE
         sess = Session()
-        sess.headers.update({'Authorization': f'Basic {auth_key}'})
-        sess.headers.update({'accept': 'application/json'})
+        sess.headers.update(
+            {
+                'Authorization': f'Basic {auth_key}',
+                'accept': 'application/json',
+                'User-Agent': f'octodns/{octodns_version} octodns-cloudflare/{__VERSION__}',
+            }
+        )
         self._sess = sess
 
     def _request(self, method, path, params=None, data=None):
