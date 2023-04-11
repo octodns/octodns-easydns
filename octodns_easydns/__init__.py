@@ -382,7 +382,7 @@ class EasyDnsProvider(BaseProvider):
     def _params_for_SRV(self, record):
         for value in record.values:
             yield {
-                'rdata': f'-{value.priority} {value.weight} {value.port} {value.target}',
+                'rdata': f'{value.priority} {value.weight} {value.port} {value.target}',
                 'name': record.name,
                 'ttl': record.ttl,
                 'type': record._type,
