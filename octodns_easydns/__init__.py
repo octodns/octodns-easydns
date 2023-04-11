@@ -269,9 +269,7 @@ class EasyDnsProvider(BaseProvider):
         return {'type': _type, 'ttl': records[0]['ttl'], 'values': values}
 
     def _data_for_TXT(self, _type, records):
-        values = [
-            value['rdata'].replace(';', '\\;') for value in records
-        ]
+        values = [value['rdata'].replace(';', '\\;') for value in records]
         return {'ttl': records[0]['ttl'], 'type': _type, 'values': values}
 
     def zone_records(self, zone):
