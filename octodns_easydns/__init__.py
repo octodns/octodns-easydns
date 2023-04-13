@@ -269,9 +269,7 @@ class EasyDnsProvider(BaseProvider):
         return {'type': _type, 'ttl': records[0]['ttl'], 'values': values}
 
     def _data_for_TXT(self, _type, records):
-        values = [
-            '"' + value['rdata'].replace(';', '\\;') + '"' for value in records
-        ]
+        values = [value['rdata'].replace(';', '\\;') for value in records]
         return {'ttl': records[0]['ttl'], 'type': _type, 'values': values}
 
     def zone_records(self, zone):
@@ -340,7 +338,7 @@ class EasyDnsProvider(BaseProvider):
     def _params_for_CAA(self, record):
         for value in record.values:
             yield {
-                'rdata': f"{value.flags} {value.tag} {value.value}",
+                'rdata': f'{value.flags} {value.tag} {value.value}',
                 'name': record.name,
                 'ttl': record.ttl,
                 'type': record._type,
@@ -382,8 +380,7 @@ class EasyDnsProvider(BaseProvider):
     def _params_for_SRV(self, record):
         for value in record.values:
             yield {
-                'rdata': f"{value.priority} {value.port} {value.weight} "
-                f"{value.target}",
+                'rdata': f'{value.priority} {value.weight} {value.port} {value.target}',
                 'name': record.name,
                 'ttl': record.ttl,
                 'type': record._type,
@@ -392,7 +389,7 @@ class EasyDnsProvider(BaseProvider):
     def _params_for_TXT(self, record):
         for value in record.values:
             yield {
-                'rdata': '"' + value.replace('\\;', ';') + '"',
+                'rdata': value.replace('\\;', ';'),
                 'name': record.name,
                 'ttl': record.ttl,
                 'type': record._type,
