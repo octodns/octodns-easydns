@@ -85,14 +85,14 @@ class TestEasyDnsProvider(TestCase):
                 mock.get(f'{base}all/unit.tests', text=fh.read())
 
                 provider.populate(zone)
-                self.assertEqual(15, len(zone.records))
+                self.assertEqual(16, len(zone.records))
                 changes = self.expected.changes(zone, provider)
                 self.assertEqual(0, len(changes))
 
         # 2nd populate makes no network calls/all from cache
         again = Zone('unit.tests.', [])
         provider.populate(again)
-        self.assertEqual(15, len(again.records))
+        self.assertEqual(16, len(again.records))
 
         # bust the cache
         del provider._zone_records[zone.name]
@@ -253,6 +253,36 @@ class TestEasyDnsProvider(TestCase):
 
         provider._data_for_CAA('CAA', caa_record_invalid)
         provider._data_for_CAA('CAA', caa_record_valid)
+
+    def test_ds(self):
+        provider = EasyDnsProvider('test', 'token', 'apikey')
+
+        # Invalid rdata records
+        ds_record_invalid = [
+            {
+                "domain": "unit.tests",
+                "host": "@",
+                "ttl": "3600",
+                "prio": "0",
+                "type": "DS",
+                "rdata": "0 0 0 0",
+            }
+        ]
+
+        # Valid rdata records
+        ds_record_valid = [
+            {
+                "domain": "unit.tests",
+                "host": "@",
+                "ttl": "3600",
+                "prio": "0",
+                "type": "DS",
+                "rdata": "12345 8 2 11111111112222222222333333333344444444445555555555666666 77777777",
+            }
+        ]
+
+        provider._data_for_DS('DS', ds_record_invalid)
+        provider._data_for_DS('DS', ds_record_valid)
 
     def test_naptr(self):
         provider = EasyDnsProvider('test', 'token', 'apikey')
@@ -429,13 +459,13 @@ class TestEasyDnsProvider(TestCase):
         ]
         plan = provider.plan(self.expected)
 
-        # No root NS, no ignored, no excluded, no unsupported
-        n = len(self.expected.records) - 9
+        # No ignored, no excluded, no unsupported
+        n = len(self.expected.records) - 8
         self.assertEqual(n, len(plan.changes))
         self.assertEqual(n, provider.apply(plan))
         self.assertFalse(plan.exists)
 
-        self.assertEqual(25, provider._client._request.call_count)
+        self.assertEqual(28, provider._client._request.call_count)
 
         provider._client._request.reset_mock()
 

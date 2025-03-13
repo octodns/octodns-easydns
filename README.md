@@ -52,7 +52,11 @@ providers:
 
 #### Records
 
-EasyDnsProvider supports A, AAAA, CAA, CNAME, MX, NAPTR, NS, SRV, and TXT.
+EasyDnsProvider supports A, AAAA, CAA, CNAME, DS, MX, NAPTR, NS, SRV, and TXT.
+
+#### Root NS Records
+
+EasyDnsProvider supports full root NS record management.
 
 #### Dynamic
 
