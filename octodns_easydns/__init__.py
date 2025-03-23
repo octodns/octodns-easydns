@@ -15,7 +15,7 @@ from octodns.provider.base import BaseProvider
 from octodns.record import Record
 
 # TODO: remove __VERSION__ with the next major version release
-__version__ = __VERSION__ = '0.0.1'
+__version__ = __VERSION__ = '0.0.2'
 
 
 class EasyDnsClientException(ProviderException):
@@ -46,14 +46,18 @@ class EasyDnsClient(object):
     default_currency = 'CAD'
     # Domain Portfolio
     domain_portfolio = 'myport'
+    # Service type for creating new domains via API
+    dns_service = 'dns'
 
     def __init__(
-        self, token, api_key, currency, portfolio, sandbox, domain_create_sleep
+        self, token, api_key, currency, portfolio, sandbox,
+            domain_create_sleep, dns_service
     ):
         self.log = logging.getLogger(f'EasyDnsProvider[{id}]')
         self.default_currency = currency
         self.domain_portfolio = portfolio
         self.domain_create_sleep = domain_create_sleep
+        self.dns_service = dns_service
 
         auth_key = f'{token}:{api_key}'
         auth_key = base64.b64encode(auth_key.encode("utf-8"))
@@ -94,7 +98,7 @@ class EasyDnsClient(object):
         # record expectig the domain to be registered already
         path = f'/domains/add/{name}'
         domain_data = {
-            'service': 'dns',
+            'service': self.dns_service,
             'term': 1,
             'dns_only': 1,
             'portfolio': self.domain_portfolio,
@@ -155,7 +159,20 @@ class EasyDnsProvider(BaseProvider):
     SUPPORTS_DYNAMIC = False
     SUPPORTS_ROOT_NS = True
     SUPPORTS = set(
-        ('A', 'AAAA', 'CAA', 'CNAME', 'DS', 'MX', 'NS', 'TXT', 'SRV', 'NAPTR')
+        (
+            'A',
+            'AAAA',
+            'CAA',
+            'CNAME',
+            'DS',
+            'MX',
+            'NS',
+            'TXT',
+            'SSHFP',
+            'SRV',
+            'TLSA',
+            'NAPTR'
+        )
     )
 
     def __init__(
@@ -167,6 +184,7 @@ class EasyDnsProvider(BaseProvider):
         portfolio='myport',
         sandbox=False,
         domain_create_sleep=1,
+        dns_service='dns',
         *args,
         **kwargs,
     ):
@@ -174,7 +192,8 @@ class EasyDnsProvider(BaseProvider):
         self.log.debug('__init__: id=%s, token=***', id)
         super().__init__(id, *args, **kwargs)
         self._client = EasyDnsClient(
-            token, api_key, currency, portfolio, sandbox, domain_create_sleep
+            token, api_key, currency, portfolio, sandbox, domain_create_sleep,
+            dns_service
         )
         self._zone_records = {}
 
@@ -195,8 +214,16 @@ class EasyDnsProvider(BaseProvider):
                 flags, tag, value = record['rdata'].split(' ', 2)
             except ValueError:
                 continue
-            values.append({'flags': flags, 'tag': tag, 'value': value})
-        return {'ttl': records[0]['ttl'], 'type': _type, 'values': values}
+            values.append({
+                'flags': int(flags),
+                'tag': tag,
+                'value': value
+            })
+        return {
+            'ttl': records[0]['ttl'],
+            'type': _type,
+            'values': values
+        }
 
     def _data_for_NAPTR(self, _type, records):
         values = []
@@ -210,14 +237,18 @@ class EasyDnsProvider(BaseProvider):
             values.append(
                 {
                     'flags': flags[1:-1],
-                    'order': order,
-                    'preference': preference,
+                    'order': int(order),
+                    'preference': int(preference),
                     'regexp': regexp[1:-1],
                     'replacement': replacement,
                     'service': service[1:-1],
                 }
             )
-        return {'type': _type, 'ttl': records[0]['ttl'], 'values': values}
+        return {
+            'type': _type,
+            'ttl': records[0]['ttl'],
+            'values': values
+        }
 
     def _data_for_CNAME(self, _type, records):
         record = records[0]
@@ -230,37 +261,100 @@ class EasyDnsProvider(BaseProvider):
     def _data_for_DS(self, _type, records):
         values = []
         for record in records:
-            key_tag, algorithm, digest_type, digest = record['rdata'].split(
-                ' ', 3
-            )
+            try:
+                key_tag, algorithm, digest_type, digest = record['rdata'].split(
+                    ' ', 3
+                )
+            except ValueError:
+                continue
             values.append(
                 {
-                    'key_tag': key_tag,
-                    'algorithm': algorithm,
-                    'digest_type': digest_type,
+                    'key_tag': int(key_tag),
+                    'algorithm': int(algorithm),
+                    'digest_type': int(digest_type),
                     'digest': digest,
                 }
             )
-        return {'type': _type, 'values': values, 'ttl': int(records[0]['ttl'])}
+        return {
+            'type': _type,
+            'values': values,
+            'ttl': int(records[0]['ttl'])
+        }
+
+    def _data_for_SSHFP(self, _type, records):
+        values = []
+        for record in records:
+            try:
+                algorithm, fingerprint_type, fingerprint = record['rdata'].split(' ', 2)
+            except ValueError:
+                continue
+
+            values.append(
+                {
+                    'algorithm': int(algorithm),
+                    'fingerprint': fingerprint,
+                    'fingerprint_type': int(fingerprint_type)
+                }
+            )
+        return {
+            'ttl': int(records[0]['ttl']),
+            'type': _type,
+            'values': values
+        }
+
+    def _data_for_TLSA(self, _type, records):
+        values = []
+        for record in records:
+            try:
+                (
+                    certificate_usage, selector, matching_type,
+                    certificate_association_data
+                ) = record['rdata'].split(' ', 3)
+                values.append(
+                    {
+                        'certificate_usage': int(certificate_usage),
+                        'selector': int(selector),
+                        'matching_type': int(matching_type),
+                        'certificate_association_data': certificate_association_data,
+                    }
+                )
+            except ValueError:
+                continue
+
+        return {
+            'ttl': records[0]['ttl'],
+            'type': _type,
+            'values': values
+        }
 
     def _data_for_MX(self, _type, records):
         values = []
         for record in records:
             values.append(
-                {'preference': record['prio'], 'exchange': str(record['rdata'])}
+                {
+                    'preference': int(record['prio']),
+                    'exchange': str(record['rdata'])
+                }
             )
-        return {'ttl': records[0]['ttl'], 'type': _type, 'values': values}
+        return {
+            'ttl': records[0]['ttl'],
+            'type': _type,
+            'values': values
+        }
 
     def _data_for_NS(self, _type, records):
         values = []
         for record in records:
             data = str(record['rdata'])
             values.append(data)
-        return {'ttl': records[0]['ttl'], 'type': _type, 'values': values}
+        return {
+            'ttl': records[0]['ttl'],
+            'type': _type,
+            'values': values
+        }
 
     def _data_for_SRV(self, _type, records):
         values = []
-        record = records[0]
         for record in records:
             try:
                 priority, weight, port, target = record['rdata'].split(' ', 3)
@@ -284,11 +378,19 @@ class EasyDnsProvider(BaseProvider):
                     'weight': int(weight),
                 }
             )
-        return {'type': _type, 'ttl': records[0]['ttl'], 'values': values}
+        return {
+            'type': _type,
+            'ttl': records[0]['ttl'],
+            'values': values
+        }
 
     def _data_for_TXT(self, _type, records):
         values = [value['rdata'].replace(';', '\\;') for value in records]
-        return {'ttl': records[0]['ttl'], 'type': _type, 'values': values}
+        return {
+            'ttl': records[0]['ttl'],
+            'type': _type,
+            'values': values
+        }
 
     def zone_records(self, zone):
         if zone.name not in self._zone_records:
@@ -371,6 +473,15 @@ class EasyDnsProvider(BaseProvider):
                 'type': record._type,
             }
 
+    def _params_for_SSHFP(self, record):
+        for rval in record.values:
+            yield {
+                'rdata': f'{rval.algorithm} {rval.fingerprint_type} {rval.fingerprint}',
+                'name': record.name,
+                'ttl': record.ttl,
+                'type': record._type,
+            }
+
     def _params_for_NAPTR(self, record):
         for value in record.values:
             content = (
@@ -413,6 +524,15 @@ class EasyDnsProvider(BaseProvider):
                 'type': record._type,
             }
 
+    def _params_for_TLSA(self, record):
+        for value in record.values:
+            yield {
+                'rdata': f'{value.certificate_usage} {value.selector} {value.matching_type} {value.certificate_association_data}',
+                'name': record.name,
+                'ttl': record.ttl,
+                'type': record._type,
+            }
+
     def _params_for_TXT(self, record):
         for value in record.values:
             yield {
@@ -426,6 +546,12 @@ class EasyDnsProvider(BaseProvider):
         new = change.new
         params_for = getattr(self, f'_params_for_{new._type}')
         for params in params_for(new):
+            # DS records created at the apex are no longer permitted with
+            # newer versions of Bind, so this check will stop any attempt
+            # to create the records and avoid the API throwing an error
+            if new._type == 'DS' and params['name'] == '':
+                self.log.warning('apply: Skipping invalid DS record at root')
+                continue
             self._client.record_create(new.zone.name[:-1], params)
 
     def _apply_Update(self, change):
@@ -435,6 +561,7 @@ class EasyDnsProvider(BaseProvider):
     def _apply_Delete(self, change):
         existing = change.existing
         zone = existing.zone
+        deleted = []
         for record in self.zone_records(zone):
             self.log.debug(
                 'apply_Delete: zone=%s, type=%s, host=%s',
@@ -446,7 +573,22 @@ class EasyDnsProvider(BaseProvider):
                 existing.name == record['host']
                 and existing._type == record['type']
             ):
-                self._client.record_delete(zone.name[:-1], record['id'])
+                # When domains are first created they have default records
+                # added using special values which the API converts to
+                # actual records. In certain instances such as NS records,
+                # they all come from the API with the same record ID.  So
+                # when we try to replace them with custom NS record the API
+                # will throw errors about deleting a non-existent record.
+                # This check tracks which records we've already deleted, so
+                # we can skip extra API calls and avoid the errors.
+                try:
+                    deleted.index(int(record['id']))
+                except ValueError:
+                    self._client.record_delete(zone.name[:-1], record['id'])
+                    deleted.append(int(record['id']))
+                else:
+                    self.log.debug(
+                        'Record ID: %s already deleted, skipping', record['id'])
 
     def _apply(self, plan):
         desired = plan.desired

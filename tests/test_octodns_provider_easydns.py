@@ -4,14 +4,15 @@
 
 
 import json
+import unittest
 from os.path import dirname, join
 from unittest import TestCase
-from unittest.mock import Mock, call
+from unittest.mock import Mock
 
 from requests import HTTPError
 from requests_mock import ANY
 from requests_mock import mock as requests_mock
-
+from unittest.mock import MagicMock, call
 from octodns.provider.yaml import YamlProvider
 from octodns.record import Record
 from octodns.zone import Zone
@@ -85,14 +86,14 @@ class TestEasyDnsProvider(TestCase):
                 mock.get(f'{base}all/unit.tests', text=fh.read())
 
                 provider.populate(zone)
-                self.assertEqual(16, len(zone.records))
+                self.assertEqual(18, len(zone.records))
                 changes = self.expected.changes(zone, provider)
-                self.assertEqual(0, len(changes))
+                self.assertEqual(1, len(changes))
 
         # 2nd populate makes no network calls/all from cache
         again = Zone('unit.tests.', [])
         provider.populate(again)
-        self.assertEqual(16, len(again.records))
+        self.assertEqual(18, len(again.records))
 
         # bust the cache
         del provider._zone_records[zone.name]
@@ -251,8 +252,12 @@ class TestEasyDnsProvider(TestCase):
             }
         ]
 
-        provider._data_for_CAA('CAA', caa_record_invalid)
-        provider._data_for_CAA('CAA', caa_record_valid)
+        invalidCAA = provider._data_for_CAA('CAA', caa_record_invalid)
+        validCAA = provider._data_for_CAA('CAA', caa_record_valid)
+        self.assertEqual(len(invalidCAA['values']), 0)
+        self.assertEqual(validCAA['values'][0]['flags'], 0)
+        self.assertEqual(validCAA['values'][0]['tag'], 'issue')
+        self.assertEqual(validCAA['values'][0]['value'], 'ca.unit.tests')
 
     def test_ds(self):
         provider = EasyDnsProvider('test', 'token', 'apikey')
@@ -261,11 +266,11 @@ class TestEasyDnsProvider(TestCase):
         ds_record_invalid = [
             {
                 "domain": "unit.tests",
-                "host": "@",
+                "host": "ds",
                 "ttl": "3600",
                 "prio": "0",
                 "type": "DS",
-                "rdata": "0 0 0 0",
+                "rdata": "0",
             }
         ]
 
@@ -273,7 +278,7 @@ class TestEasyDnsProvider(TestCase):
         ds_record_valid = [
             {
                 "domain": "unit.tests",
-                "host": "@",
+                "host": "ds",
                 "ttl": "3600",
                 "prio": "0",
                 "type": "DS",
@@ -281,8 +286,84 @@ class TestEasyDnsProvider(TestCase):
             }
         ]
 
-        provider._data_for_DS('DS', ds_record_invalid)
-        provider._data_for_DS('DS', ds_record_valid)
+        invalidDS = provider._data_for_DS('DS', ds_record_invalid)
+        validDS = provider._data_for_DS('DS', ds_record_valid)
+        self.assertEqual(len(invalidDS['values']), 0)
+        self.assertEqual(len(validDS['values']), 1)
+        self.assertEqual(validDS['values'][0]['algorithm'], 8)
+        self.assertEqual(validDS['values'][0]['digest_type'], 2)
+        self.assertNotEqual(validDS['values'][0]['digest'], '')
+        self.assertEqual(validDS['values'][0]['key_tag'], 12345)
+
+    def test_tlsa(self):
+        provider = EasyDnsProvider('test', 'token', 'apikey')
+
+        # Invalid rdata records
+        tlsa_record_invalid = [
+            {
+                "domain": "unit.tests",
+                "host": "tlsa",
+                "ttl": "600",
+                "prio": "0",
+                "type": "TLSA",
+                "rdata": "0",
+            }
+        ]
+
+        # Valid rdata records
+        tlsa_record_valid = [
+            {
+                "domain": "unit.tests",
+                "host": "tlsa",
+                "ttl": "3600",
+                "prio": "0",
+                "type": "TLSA",
+                "rdata": "1 1 1 ABABABABABABABABAB",
+            }
+        ]
+
+        invalidTLSA = provider._data_for_TLSA('DS', tlsa_record_invalid)
+        validTLSA = provider._data_for_TLSA('DS', tlsa_record_valid)
+        self.assertEqual(len(invalidTLSA['values']), 0)
+        self.assertEqual(len(validTLSA['values']), 1)
+        self.assertEqual(validTLSA['values'][0]['matching_type'], 1)
+        self.assertEqual(validTLSA['values'][0]['selector'], 1)
+        self.assertNotEqual(validTLSA['values'][0]['certificate_association_data'], '')
+        self.assertEqual(validTLSA['values'][0]['certificate_usage'], 1)
+
+    def test_sshfp(self):
+        provider = EasyDnsProvider('test', 'token', 'apikey')
+
+        # Invalid rdata records
+        sshfp_record_invalid = [
+            {
+                "domain": "unit.tests",
+                "host": "@",
+                "ttl": "3600",
+                "prio": "0",
+                "type": "SSHFP",
+                "rdata": "0",
+            }
+        ]
+
+        # Valid rdata records
+        sshfp_record_valid = [
+            {
+                "domain": "unit.tests",
+                "host": "@",
+                "ttl": "3600",
+                "prio": "0",
+                "type": "SSHFP",
+                "rdata": "1 1 1111111111111111111111111111111111111111",
+            }
+        ]
+
+        invalidSSHFP = provider._data_for_SSHFP('SSHFP', sshfp_record_invalid)
+        validSSHFP = provider._data_for_SSHFP('SSHFP', sshfp_record_valid)
+        self.assertEqual(len(invalidSSHFP['values']), 0)
+        self.assertEqual(validSSHFP['values'][0]['algorithm'], 1)
+        self.assertEqual(validSSHFP['values'][0]['fingerprint_type'], 1)
+        self.assertNotEqual(validSSHFP['values'][0]['fingerprint'], '')
 
     def test_naptr(self):
         provider = EasyDnsProvider('test', 'token', 'apikey')
@@ -311,8 +392,15 @@ class TestEasyDnsProvider(TestCase):
             }
         ]
 
-        provider._data_for_NAPTR('NAPTR', naptr_record_invalid)
-        provider._data_for_NAPTR('NAPTR', naptr_record_valid)
+        invalidNAPTR = provider._data_for_NAPTR('NAPTR', naptr_record_invalid)
+        validNAPTR = provider._data_for_NAPTR('NAPTR', naptr_record_valid)
+        self.assertEqual(len(invalidNAPTR['values']), 0)
+        self.assertEqual(validNAPTR['values'][0]['order'], 10)
+        self.assertEqual(validNAPTR['values'][0]['preference'], 10)
+        self.assertEqual(validNAPTR['values'][0]['flags'], 'U')
+        self.assertEqual(validNAPTR['values'][0]['service'], 'SIP+D2U')
+        self.assertEqual(validNAPTR['values'][0]['regexp'], '!^.*$!sip:info@bar.example.com!')
+        self.assertEqual(validNAPTR['values'][0]['replacement'], '.')
 
     def test_srv(self):
         provider = EasyDnsProvider('test', 'token', 'apikey')
@@ -460,12 +548,12 @@ class TestEasyDnsProvider(TestCase):
         plan = provider.plan(self.expected)
 
         # No ignored, no excluded, no unsupported
-        n = len(self.expected.records) - 8
+        n = len(self.expected.records) - 7
         self.assertEqual(n, len(plan.changes))
         self.assertEqual(n, provider.apply(plan))
         self.assertFalse(plan.exists)
 
-        self.assertEqual(28, provider._client._request.call_count)
+        self.assertEqual(31, provider._client._request.call_count)
 
         provider._client._request.reset_mock()
 
@@ -544,3 +632,57 @@ class TestEasyDnsProvider(TestCase):
             ],
             any_order=True,
         )
+
+class TestApplyDelete(unittest.TestCase):
+    def setUp(self):
+        self.provider = EasyDnsProvider('test', 'token', 'apikey')
+        self.provider.zone_records = MagicMock()
+        self.provider._client = MagicMock()
+        self.provider.log = MagicMock()
+
+
+    def test_apply_delete_skips_already_deleted(self):
+        zone = Zone('unit.tests.', [])
+        record = Record.new(zone, '', {'type': 'NS', 'ttl': 300, 'value': 'ns1.unit.tests.'})
+        change = MagicMock(existing=record)
+        self.provider.zone_records.return_value = [
+            {'host': '', 'type': 'NS', 'id': '123'},
+            {'host': '', 'type': 'NS', 'id': '123'}  # Duplicate ID
+        ]
+
+        self.provider._apply_Delete(change)
+
+        self.provider._client.record_delete.assert_called_once_with('unit.tests', '123')
+        self.provider.log.debug.assert_called_with('Record ID: %s already deleted, skipping', '123')
+
+
+class TestApplyCreate(unittest.TestCase):
+    def setUp(self):
+        self.provider = EasyDnsProvider('test', 'token', 'apikey')
+        self.provider._client = MagicMock()
+        self.provider.log = MagicMock()
+
+    def test_apply_create_skips_invalid_ds_record(self):
+        provider = EasyDnsProvider('test', 'token', 'apikey')
+        zone = Zone('unit.tests.', [])
+
+        # Valid rdata records
+        ds_record_valid = [
+            {
+                "domain": "unit.tests",
+                "host": "",
+                "ttl": "3600",
+                "prio": "0",
+                "type": "DS",
+                "rdata": "12345 8 2 11111111112222222222333333333344444444445555555555666666 77777777",
+            }
+        ]
+
+        validDS = provider._data_for_DS('DS', ds_record_valid)
+
+        record = Record.new(zone, '', validDS)
+        zone.add_record(record)
+        print(zone.records)
+        change = MagicMock(new=record)
+        print(change)
+        provider._apply_Create(change)

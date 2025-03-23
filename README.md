@@ -19,7 +19,7 @@ Pinning specific versions or SHAs is recommended to avoid unplanned upgrades.
 ```
 # Start with the latest versions and don't just copy what's here
 octodns==0.9.14
-octodns-easydns==0.0.1
+octodns-easydns==0.0.2
 ```
 
 ##### SHAs
@@ -46,13 +46,27 @@ providers:
     #default_currency: CAD
     # Domain Portfolio under which to create domains
     portfolio: env/EASYDNS_PORTFOLIO
+    # Service type for creating new domains through the API
+    # For most use cases this should probably be the default "dns"
+    # service, but additional service levels are available which
+    # provide more options and higher DNS query limits.  Please
+    # contact EasyDNS support to discuss the options and only set
+    # a service type when instructed to do so to avoid problems
+    # and potential charges.
+    #
+    # In order to add a new domain through the API, you must have
+    # enough funds on your account BEFORE the domain is created
+    # otherwise an error will be generated.
+    #
+    # Default value is 'dns'
+    dns_service: env/EASYDNS_SERVICE
 ```
 
 ### Support Information
 
 #### Records
 
-EasyDnsProvider supports A, AAAA, CAA, CNAME, DS, MX, NAPTR, NS, SRV, and TXT.
+EasyDnsProvider supports A, AAAA, CAA, CNAME, DS, MX, NAPTR, NS, SSHFP, SRV, TLSA and TXT.
 
 #### Root NS Records
 
