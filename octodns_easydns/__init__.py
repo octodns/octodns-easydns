@@ -50,8 +50,14 @@ class EasyDnsClient(object):
     dns_service = 'dns'
 
     def __init__(
-        self, token, api_key, currency, portfolio, sandbox,
-            domain_create_sleep, dns_service
+        self,
+        token,
+        api_key,
+        currency,
+        portfolio,
+        sandbox,
+        domain_create_sleep,
+        dns_service,
     ):
         self.log = logging.getLogger(f'EasyDnsProvider[{id}]')
         self.default_currency = currency
@@ -171,7 +177,7 @@ class EasyDnsProvider(BaseProvider):
             'SSHFP',
             'SRV',
             'TLSA',
-            'NAPTR'
+            'NAPTR',
         )
     )
 
@@ -192,8 +198,13 @@ class EasyDnsProvider(BaseProvider):
         self.log.debug('__init__: id=%s, token=***', id)
         super().__init__(id, *args, **kwargs)
         self._client = EasyDnsClient(
-            token, api_key, currency, portfolio, sandbox, domain_create_sleep,
-            dns_service
+            token,
+            api_key,
+            currency,
+            portfolio,
+            sandbox,
+            domain_create_sleep,
+            dns_service,
         )
         self._zone_records = {}
 
@@ -214,16 +225,8 @@ class EasyDnsProvider(BaseProvider):
                 flags, tag, value = record['rdata'].split(' ', 2)
             except ValueError:
                 continue
-            values.append({
-                'flags': int(flags),
-                'tag': tag,
-                'value': value
-            })
-        return {
-            'ttl': records[0]['ttl'],
-            'type': _type,
-            'values': values
-        }
+            values.append({'flags': int(flags), 'tag': tag, 'value': value})
+        return {'ttl': records[0]['ttl'], 'type': _type, 'values': values}
 
     def _data_for_NAPTR(self, _type, records):
         values = []
@@ -244,11 +247,7 @@ class EasyDnsProvider(BaseProvider):
                     'service': service[1:-1],
                 }
             )
-        return {
-            'type': _type,
-            'ttl': records[0]['ttl'],
-            'values': values
-        }
+        return {'type': _type, 'ttl': records[0]['ttl'], 'values': values}
 
     def _data_for_CNAME(self, _type, records):
         record = records[0]
@@ -275,17 +274,15 @@ class EasyDnsProvider(BaseProvider):
                     'digest': digest,
                 }
             )
-        return {
-            'type': _type,
-            'values': values,
-            'ttl': int(records[0]['ttl'])
-        }
+        return {'type': _type, 'values': values, 'ttl': int(records[0]['ttl'])}
 
     def _data_for_SSHFP(self, _type, records):
         values = []
         for record in records:
             try:
-                algorithm, fingerprint_type, fingerprint = record['rdata'].split(' ', 2)
+                algorithm, fingerprint_type, fingerprint = record[
+                    'rdata'
+                ].split(' ', 2)
             except ValueError:
                 continue
 
@@ -293,22 +290,20 @@ class EasyDnsProvider(BaseProvider):
                 {
                     'algorithm': int(algorithm),
                     'fingerprint': fingerprint,
-                    'fingerprint_type': int(fingerprint_type)
+                    'fingerprint_type': int(fingerprint_type),
                 }
             )
-        return {
-            'ttl': int(records[0]['ttl']),
-            'type': _type,
-            'values': values
-        }
+        return {'ttl': int(records[0]['ttl']), 'type': _type, 'values': values}
 
     def _data_for_TLSA(self, _type, records):
         values = []
         for record in records:
             try:
                 (
-                    certificate_usage, selector, matching_type,
-                    certificate_association_data
+                    certificate_usage,
+                    selector,
+                    matching_type,
+                    certificate_association_data,
                 ) = record['rdata'].split(' ', 3)
                 values.append(
                     {
@@ -321,11 +316,7 @@ class EasyDnsProvider(BaseProvider):
             except ValueError:
                 continue
 
-        return {
-            'ttl': records[0]['ttl'],
-            'type': _type,
-            'values': values
-        }
+        return {'ttl': records[0]['ttl'], 'type': _type, 'values': values}
 
     def _data_for_MX(self, _type, records):
         values = []
@@ -333,25 +324,17 @@ class EasyDnsProvider(BaseProvider):
             values.append(
                 {
                     'preference': int(record['prio']),
-                    'exchange': str(record['rdata'])
+                    'exchange': str(record['rdata']),
                 }
             )
-        return {
-            'ttl': records[0]['ttl'],
-            'type': _type,
-            'values': values
-        }
+        return {'ttl': records[0]['ttl'], 'type': _type, 'values': values}
 
     def _data_for_NS(self, _type, records):
         values = []
         for record in records:
             data = str(record['rdata'])
             values.append(data)
-        return {
-            'ttl': records[0]['ttl'],
-            'type': _type,
-            'values': values
-        }
+        return {'ttl': records[0]['ttl'], 'type': _type, 'values': values}
 
     def _data_for_SRV(self, _type, records):
         values = []
@@ -378,19 +361,11 @@ class EasyDnsProvider(BaseProvider):
                     'weight': int(weight),
                 }
             )
-        return {
-            'type': _type,
-            'ttl': records[0]['ttl'],
-            'values': values
-        }
+        return {'type': _type, 'ttl': records[0]['ttl'], 'values': values}
 
     def _data_for_TXT(self, _type, records):
         values = [value['rdata'].replace(';', '\\;') for value in records]
-        return {
-            'ttl': records[0]['ttl'],
-            'type': _type,
-            'values': values
-        }
+        return {'ttl': records[0]['ttl'], 'type': _type, 'values': values}
 
     def zone_records(self, zone):
         if zone.name not in self._zone_records:
@@ -588,7 +563,8 @@ class EasyDnsProvider(BaseProvider):
                     deleted.append(int(record['id']))
                 else:
                     self.log.debug(
-                        'Record ID: %s already deleted, skipping', record['id'])
+                        'Record ID: %s already deleted, skipping', record['id']
+                    )
 
     def _apply(self, plan):
         desired = plan.desired

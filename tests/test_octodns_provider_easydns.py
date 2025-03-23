@@ -7,12 +7,12 @@ import json
 import unittest
 from os.path import dirname, join
 from unittest import TestCase
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock, call
 
 from requests import HTTPError
 from requests_mock import ANY
 from requests_mock import mock as requests_mock
-from unittest.mock import MagicMock, call
+
 from octodns.provider.yaml import YamlProvider
 from octodns.record import Record
 from octodns.zone import Zone
@@ -328,7 +328,9 @@ class TestEasyDnsProvider(TestCase):
         self.assertEqual(len(validTLSA['values']), 1)
         self.assertEqual(validTLSA['values'][0]['matching_type'], 1)
         self.assertEqual(validTLSA['values'][0]['selector'], 1)
-        self.assertNotEqual(validTLSA['values'][0]['certificate_association_data'], '')
+        self.assertNotEqual(
+            validTLSA['values'][0]['certificate_association_data'], ''
+        )
         self.assertEqual(validTLSA['values'][0]['certificate_usage'], 1)
 
     def test_sshfp(self):
@@ -399,7 +401,9 @@ class TestEasyDnsProvider(TestCase):
         self.assertEqual(validNAPTR['values'][0]['preference'], 10)
         self.assertEqual(validNAPTR['values'][0]['flags'], 'U')
         self.assertEqual(validNAPTR['values'][0]['service'], 'SIP+D2U')
-        self.assertEqual(validNAPTR['values'][0]['regexp'], '!^.*$!sip:info@bar.example.com!')
+        self.assertEqual(
+            validNAPTR['values'][0]['regexp'], '!^.*$!sip:info@bar.example.com!'
+        )
         self.assertEqual(validNAPTR['values'][0]['replacement'], '.')
 
     def test_srv(self):
@@ -633,6 +637,7 @@ class TestEasyDnsProvider(TestCase):
             any_order=True,
         )
 
+
 class TestApplyDelete(unittest.TestCase):
     def setUp(self):
         self.provider = EasyDnsProvider('test', 'token', 'apikey')
@@ -640,20 +645,25 @@ class TestApplyDelete(unittest.TestCase):
         self.provider._client = MagicMock()
         self.provider.log = MagicMock()
 
-
     def test_apply_delete_skips_already_deleted(self):
         zone = Zone('unit.tests.', [])
-        record = Record.new(zone, '', {'type': 'NS', 'ttl': 300, 'value': 'ns1.unit.tests.'})
+        record = Record.new(
+            zone, '', {'type': 'NS', 'ttl': 300, 'value': 'ns1.unit.tests.'}
+        )
         change = MagicMock(existing=record)
         self.provider.zone_records.return_value = [
             {'host': '', 'type': 'NS', 'id': '123'},
-            {'host': '', 'type': 'NS', 'id': '123'}  # Duplicate ID
+            {'host': '', 'type': 'NS', 'id': '123'},  # Duplicate ID
         ]
 
         self.provider._apply_Delete(change)
 
-        self.provider._client.record_delete.assert_called_once_with('unit.tests', '123')
-        self.provider.log.debug.assert_called_with('Record ID: %s already deleted, skipping', '123')
+        self.provider._client.record_delete.assert_called_once_with(
+            'unit.tests', '123'
+        )
+        self.provider.log.debug.assert_called_with(
+            'Record ID: %s already deleted, skipping', '123'
+        )
 
 
 class TestApplyCreate(unittest.TestCase):
