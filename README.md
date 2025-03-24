@@ -59,7 +59,7 @@ providers:
     # otherwise an error will be generated.
     #
     # Default value is 'dns'
-    dns_service: env/EASYDNS_SERVICE
+    #dns_service: dns
 ```
 
 ### Support Information
