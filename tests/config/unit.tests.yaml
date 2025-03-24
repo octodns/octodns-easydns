@@ -36,12 +36,6 @@
     - flags: 0
       tag: issue
       value: ca.unit.tests
-  - type: DS
-    value:
-      algorithm: 8
-      digest: 11111111112222222222333333333344444444445555555555666666 77777777
-      digest_type: 2
-      key_tag: 12345
 _imap._tcp:
   ttl: 600
   type: SRV
@@ -82,6 +76,14 @@ dname:
   ttl: 300
   type: DNAME
   value: unit.tests.
+ds:
+  ttl: 3600
+  type: DS
+  value:
+    algorithm: 8
+    digest: 11111111112222222222333333333344444444445555555555666666 77777777
+    digest_type: 2
+    key_tag: 12345
 excluded:
   octodns:
     excluded:
@@ -168,6 +170,14 @@ sub:
   values:
   - 6.2.3.4.
   - 7.2.3.4.
+tlsa:
+  ttl: 600
+  type: 'TLSA'
+  values:
+    - certificate_association_data: ABABABABABABABABAB
+      certificate_usage: 1
+      matching_type: 1
+      selector: 1
 txt:
   ttl: 600
   type: TXT
