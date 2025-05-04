@@ -460,7 +460,7 @@ class TestEasyDnsProvider(TestCase):
         plan = provider.plan(self.expected)
 
         # No ignored, no excluded, no unsupported
-        n = len(self.expected.records) - 8
+        n = len(self.expected.records) - 7
         self.assertEqual(n, len(plan.changes))
         self.assertEqual(n, provider.apply(plan))
         self.assertFalse(plan.exists)
