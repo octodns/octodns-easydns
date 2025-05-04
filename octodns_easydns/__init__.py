@@ -153,8 +153,9 @@ class EasyDnsClient(object):
 class EasyDnsProvider(BaseProvider):
     SUPPORTS_GEO = False
     SUPPORTS_DYNAMIC = False
+    SUPPORTS_ROOT_NS = True
     SUPPORTS = set(
-        ('A', 'AAAA', 'CAA', 'CNAME', 'MX', 'NS', 'TXT', 'SRV', 'NAPTR')
+        ('A', 'AAAA', 'CAA', 'CNAME', 'DS', 'MX', 'NS', 'TXT', 'SRV', 'NAPTR')
     )
 
     def __init__(
@@ -225,6 +226,22 @@ class EasyDnsProvider(BaseProvider):
             'type': _type,
             'value': str(record['rdata']),
         }
+
+    def _data_for_DS(self, _type, records):
+        values = []
+        for record in records:
+            key_tag, algorithm, digest_type, digest = record['rdata'].split(
+                ' ', 3
+            )
+            values.append(
+                {
+                    'key_tag': key_tag,
+                    'algorithm': algorithm,
+                    'digest_type': digest_type,
+                    'digest': digest,
+                }
+            )
+        return {'type': _type, 'values': values, 'ttl': int(records[0]['ttl'])}
 
     def _data_for_MX(self, _type, records):
         values = []
@@ -340,6 +357,15 @@ class EasyDnsProvider(BaseProvider):
         for value in record.values:
             yield {
                 'rdata': f'{value.flags} {value.tag} {value.value}',
+                'name': record.name,
+                'ttl': record.ttl,
+                'type': record._type,
+            }
+
+    def _params_for_DS(self, record):
+        for value in record.values:
+            yield {
+                'rdata': f'{value.key_tag} {value.algorithm} {value.digest_type} {value.digest}',
                 'name': record.name,
                 'ttl': record.ttl,
                 'type': record._type,

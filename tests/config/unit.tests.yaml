@@ -23,6 +23,12 @@
     - flags: 0
       tag: issue
       value: ca.unit.tests
+  - type: DS
+    value:
+      algorithm: 8
+      digest: 11111111112222222222333333333344444444445555555555666666 77777777
+      digest_type: 2
+      key_tag: 12345
 _imap._tcp:
   ttl: 600
   type: SRV
