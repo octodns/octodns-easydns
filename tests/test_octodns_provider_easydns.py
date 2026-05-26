@@ -21,7 +21,9 @@ from octodns_easydns import EasyDnsClientNotFound, EasyDnsProvider
 
 class TestEasyDnsProvider(TestCase):
     expected = Zone('unit.tests.', [])
-    source = YamlProvider('test', join(dirname(__file__), 'config'))
+    source = YamlProvider(
+        'test', join(dirname(__file__), 'config'), escaped_semicolons=False
+    )
     source.populate(expected)
 
     def test_populate(self):
