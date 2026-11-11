@@ -46,6 +46,8 @@ class EasyDnsClient(object):
     default_currency = 'CAD'
     # Domain Portfolio
     domain_portfolio = 'myport'
+    # Max records per page, the largest value the API allows
+    PAGE_SIZE = 1000
 
     def __init__(
         self, token, api_key, currency, portfolio, sandbox, domain_create_sleep
@@ -122,9 +124,18 @@ class EasyDnsClient(object):
         else:
             path = f'/zones/records/parsed/{zone_name}'
 
+        # easyDNS returns at most `max` (1000) records per request, page
+        # through using `start` until we've read `total` records
         ret = []
-        resp = self._request('GET', path).json()
-        ret += resp['data']
+        start = 0
+        while True:
+            params = {'start': start, 'max': self.PAGE_SIZE}
+            resp = self._request('GET', path, params=params).json()
+            data = resp['data']
+            ret += data
+            start += len(data)
+            if not data or start >= int(resp.get('total', 0)):
+                break
 
         for record in ret:
             # change any apex record to empty string
