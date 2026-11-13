@@ -1,3 +1,11 @@
+## 1.1.0 - 2026-11-13
+
+Minor:
+* Modernize packaging: move build metadata from setup.py into pyproject.toml, remove setup.py; require Python >=3.10 - [#58](https://github.com/octodns/octodns-easydns/pull/58)
+
+Patch:
+* Page through all records when populating zones with more than 1000 records - [#64](https://github.com/octodns/octodns-easydns/pull/64)
+
 ## 1.0.1 - 2026-04-03
 
 Patch:
