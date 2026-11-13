@@ -99,6 +99,66 @@ class TestEasyDnsProvider(TestCase):
         # bust the cache
         del provider._zone_records[zone.name]
 
+    def test_records_pagination(self):
+        provider = EasyDnsProvider('test', 'token', 'apikey')
+        client = provider._client
+        client.PAGE_SIZE = 2
+
+        def record(i):
+            return {
+                'id': str(i),
+                'domain': 'unit.tests',
+                'host': f'host{i}',
+                'ttl': '300',
+                'prio': '0',
+                'type': 'A',
+                'rdata': f'1.2.3.{i}',
+                'geozone_id': '0',
+                'last_mod': '2020-01-01 01:01:01',
+            }
+
+        records = [record(i) for i in range(5)]
+
+        def page(request, context):
+            start = int(request.qs['start'][0])
+            size = int(request.qs['max'][0])
+            data = records[start : start + size]
+            return {
+                'tm': 1000000000,
+                'data': data,
+                'count': len(data),
+                'total': len(records),
+                'start': start,
+                'max': size,
+                'status': 200,
+            }
+
+        with requests_mock() as mock:
+            base = 'https://rest.easydns.net/zones/records/'
+            mock.get(f'{base}parsed/unit.tests', json=page)
+
+            got = client.records('unit.tests')
+            self.assertEqual(
+                [f'host{i}' for i in range(5)], [r['host'] for r in got]
+            )
+            # 3 pages: 2 + 2 + 1
+            self.assertEqual(
+                [['0'], ['2'], ['4']],
+                [r.qs['start'] for r in mock.request_history],
+            )
+            self.assertEqual(
+                [['2']] * 3, [r.qs['max'] for r in mock.request_history]
+            )
+
+        # an empty page stops paging even if total claims more records
+        with requests_mock() as mock:
+            mock.get(
+                f'{base}parsed/unit.tests',
+                json={'data': [], 'count': 0, 'total': 10},
+            )
+            self.assertEqual([], client.records('unit.tests'))
+            self.assertEqual(1, mock.call_count)
+
     def test_domain(self):
         provider = EasyDnsProvider('test', 'token', 'apikey')
 
